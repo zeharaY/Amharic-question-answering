@@ -1,52 +1,36 @@
-# app.py
 import streamlit as st
 from huggingface_hub import InferenceClient
 
-# --- 1. Initialize the Client ---
-# Your model ID and token (store token securely in Streamlit secrets)
-REPO_ID = "zeharay/amharic-qa-demo-model"
-hf_token = st.secrets["HF_TOKEN"]
-client = InferenceClient(model=REPO_ID, token=hf_token)
+# ============================================
+# 1. Configuration – use your public model ID
+# ============================================
+REPO_ID = "zeharay/amharic-qa-demo-model"   # <-- YOUR MODEL ID
+HF_TOKEN = st.secrets.get("HF_TOKEN", None) # Get token from Streamlit secrets
 
-# --- 2. The Prediction Function (No local model!) ---
-def get_answer(question, context):
-    # The API call does all the work
-    response = client.question_answering(question=question, context=context)
-    return response['answer']
+if HF_TOKEN is None:
+    st.error("Missing Hugging Face token. Please set HF_TOKEN in Streamlit secrets.")
+    st.stop()
 
+# Initialize client
+client = InferenceClient(model=REPO_ID, token=HF_TOKEN)
+
+# ============================================
+# 2. Helper function for QA
+# ============================================
 def get_answer(question: str, context: str) -> str:
     try:
-        response = client.question_answering(
-            question=question,
-            context=context,
-            model=MODEL_ID,
-        )
+        response = client.question_answering(question=question, context=context)
         return response.get("answer", "No answer found.")
     except Exception as e:
         st.error(f"Inference error: {e}")
         return ""
 
 # ============================================
-# 2. Helper Function
-# ============================================
-def get_answer(question: str, context: str) -> str:
-    try:
-        response = client.question_answering(
-            question=question,
-            context=context,
-            model=MODEL_ID,
-        )
-        return response.get("answer", "No answer found.")
-    except Exception as e:
-        st.error(f"Inference error: {e}")
-        return ""
-
-# ============================================
-# 3. UI
+# 3. Streamlit UI
 # ============================================
 st.set_page_config(page_title="Amharic QA", page_icon="📚")
 st.title("📚 Amharic Question Answering")
-st.markdown("**Ask questions about any Amharic text – the model extracts the answer.**")
+st.markdown("Ask a question about any Amharic text – the model extracts the answer.")
 
 col1, col2 = st.columns(2)
 
@@ -73,8 +57,9 @@ if ask_button:
     else:
         with st.spinner("Searching for answer..."):
             answer = get_answer(question, context)
-        st.success("✅ **Answer:**")
-        st.markdown(f"> {answer}")
+        if answer:
+            st.success("✅ **Answer:**")
+            st.markdown(f"> {answer}")
 
 st.markdown("---")
-st.caption("Powered by Hugging Face Inference API and your fine‑tuned Amharic QA model.")
+st.caption("Powered by Hugging Face Inference API and your fine‑tuned Amharic model.")
