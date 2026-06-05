@@ -5,7 +5,7 @@ MODEL_REPO = "zeharay/amharic-qa-demo-model"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_REPO)
 model = AutoModelForQuestionAnswering.from_pretrained(MODEL_REPO)
-qa_pipeline = pipeline("question-answering", model=model, tokenizer=tokenizer)
+qa_pipeline = pipeline("table-question-answering", model=model, tokenizer=tokenizer)
 
 st.title("Amharic Question Answering Demo")
 
