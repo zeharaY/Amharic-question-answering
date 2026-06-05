@@ -2,14 +2,17 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
 
-# Model and token from secrets
-MODEL_ID = "zeharay/amharic-qa-demo-model"
-HF_TOKEN = st.secrets.get("HF_TOKEN")
+# --- 1. Initialize the Client ---
+# Your model ID and token (store token securely in Streamlit secrets)
+REPO_ID = "zeharay/amharic-qa-demo-model"
+hf_token = st.secrets["HF_TOKEN"]
+client = InferenceClient(model=REPO_ID, token=hf_token)
 
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=HF_TOKEN,
-)
+# --- 2. The Prediction Function (No local model!) ---
+def get_answer(question, context):
+    # The API call does all the work
+    response = client.question_answering(question=question, context=context)
+    return response['answer']
 
 def get_answer(question: str, context: str) -> str:
     try:
