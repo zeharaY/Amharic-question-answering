@@ -2,18 +2,26 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
 
-# ============================================
-# 1. Configuration from Secrets
-# ============================================
-# Your Hugging Face model ID (set in secrets or hardcoded)
-MODEL_ID = st.secrets.get("HF_MODEL_ID", "your-username/amharic-qa-model")
-HF_TOKEN = st.secrets.get("HF_TOKEN", None)
+# Model and token from secrets
+MODEL_ID = "zeharay/amharic-qa-demo-model"
+HF_TOKEN = st.secrets.get("HF_TOKEN")
 
-if HF_TOKEN is None:
-    st.error("❌ Missing Hugging Face API token. Please set `HF_TOKEN` in your Streamlit secrets.")
-    st.stop()
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=HF_TOKEN,
+)
 
-client = InferenceClient(api_key=HF_TOKEN, provider="hf-inference")
+def get_answer(question: str, context: str) -> str:
+    try:
+        response = client.question_answering(
+            question=question,
+            context=context,
+            model=MODEL_ID,
+        )
+        return response.get("answer", "No answer found.")
+    except Exception as e:
+        st.error(f"Inference error: {e}")
+        return ""
 
 # ============================================
 # 2. Helper Function
