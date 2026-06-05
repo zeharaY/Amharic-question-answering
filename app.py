@@ -1,19 +1,31 @@
+# app.py
 import streamlit as st
-import requests
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 
-API_URL = "https://api-inference.huggingface.co/models/zeharay/amharic-qa-demo-model"
-headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+# Path to your fine-tuned model
+MODEL_DIR = "./amharic_qa_model"
 
-def query(payload):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+# Load model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+model = AutoModelForQuestionAnswering.from_pretrained(MODEL_DIR)
 
+# Create QA pipeline (requires transformers >= 4.30)
+qa_pipeline = pipeline("table-question-answering", model=model, tokenizer=tokenizer)
+
+# Streamlit UI
 st.title("Amharic Question Answering Demo")
 
 context = st.text_area("Enter context (Amharic text):")
-question = st.text_input("Enter question (Amharic):")
+question = st.text_input("Enter your question (Amharic):")
+
+top_k = st.slider("Number of candidate answers", 1, 5, 1)
 
 if st.button("Get Answer"):
     if context and question:
-        result = query({"inputs": {"question": question, "context": context}})
-        st.write("Answer:", result.get("answer", "No answer"))
+        results = qa_pipeline({"context": context, "question": question}, top_k=top_k)
+        if isinstance(results, list):
+            for i, res in enumerate(results):
+                st.write(f"Answer {i+1}: {res['answer']} (confidence: {res['score']:.4f})")
+        else:
+            st.write("Answer:", results["answer"])
+            st.write("Confidence:", results["score"])
