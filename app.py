@@ -5,7 +5,9 @@ from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 MODEL_REPO = "zeharay/amharic-qa-demo-model"  # your public HF repo
 
 # Load tokenizer (disable fast tokenizer to avoid Rust build issues)
+# tokenizer = AutoTokenizer.from_pretrained(MODEL_REPO, use_fast=False)
 tokenizer = AutoTokenizer.from_pretrained(MODEL_REPO, use_fast=False)
+
 model = AutoModelForQuestionAnswering.from_pretrained(MODEL_REPO)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
