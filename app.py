@@ -1,31 +1,69 @@
 # app.py
 import streamlit as st
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
+from huggingface_hub import InferenceClient
 
-# Path to your fine-tuned model
-MODEL_DIR = "./amharic_qa_model"
+# ============================================
+# 1. Configuration from Secrets
+# ============================================
+# Your Hugging Face model ID (set in secrets or hardcoded)
+MODEL_ID = st.secrets.get("HF_MODEL_ID", "your-username/amharic-qa-model")
+HF_TOKEN = st.secrets.get("HF_TOKEN", None)
 
-# Load model and tokenizer
-tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
-model = AutoModelForQuestionAnswering.from_pretrained(MODEL_DIR)
+if HF_TOKEN is None:
+    st.error("❌ Missing Hugging Face API token. Please set `HF_TOKEN` in your Streamlit secrets.")
+    st.stop()
 
-# Create QA pipeline (requires transformers >= 4.30)
-qa_pipeline = pipeline("table-question-answering", model=model, tokenizer=tokenizer)
+client = InferenceClient(api_key=HF_TOKEN, provider="hf-inference")
 
-# Streamlit UI
-st.title("Amharic Question Answering Demo")
+# ============================================
+# 2. Helper Function
+# ============================================
+def get_answer(question: str, context: str) -> str:
+    try:
+        response = client.question_answering(
+            question=question,
+            context=context,
+            model=MODEL_ID,
+        )
+        return response.get("answer", "No answer found.")
+    except Exception as e:
+        st.error(f"Inference error: {e}")
+        return ""
 
-context = st.text_area("Enter context (Amharic text):")
-question = st.text_input("Enter your question (Amharic):")
+# ============================================
+# 3. UI
+# ============================================
+st.set_page_config(page_title="Amharic QA", page_icon="📚")
+st.title("📚 Amharic Question Answering")
+st.markdown("**Ask questions about any Amharic text – the model extracts the answer.**")
 
-top_k = st.slider("Number of candidate answers", 1, 5, 1)
+col1, col2 = st.columns(2)
 
-if st.button("Get Answer"):
-    if context and question:
-        results = qa_pipeline({"context": context, "question": question}, top_k=top_k)
-        if isinstance(results, list):
-            for i, res in enumerate(results):
-                st.write(f"Answer {i+1}: {res['answer']} (confidence: {res['score']:.4f})")
-        else:
-            st.write("Answer:", results["answer"])
-            st.write("Confidence:", results["score"])
+with col1:
+    context = st.text_area(
+        "📄 **Context** (document to search)",
+        height=300,
+        placeholder="Paste Amharic text here..."
+    )
+
+with col2:
+    question = st.text_area(
+        "❓ **Question** (in Amharic)",
+        height=150,
+        placeholder="e.g., የአማርኛ ቋንቋ የትኛው ቤተሰብ ነው?"
+    )
+    ask_button = st.button("🔍 Get Answer", type="primary", use_container_width=True)
+
+if ask_button:
+    if not context.strip():
+        st.warning("Please provide a context.")
+    elif not question.strip():
+        st.warning("Please provide a question.")
+    else:
+        with st.spinner("Searching for answer..."):
+            answer = get_answer(question, context)
+        st.success("✅ **Answer:**")
+        st.markdown(f"> {answer}")
+
+st.markdown("---")
+st.caption("Powered by Hugging Face Inference API and your fine‑tuned Amharic QA model.")
