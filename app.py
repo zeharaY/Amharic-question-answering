@@ -8,10 +8,10 @@ def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
-st.title("Amharic QA Demo (HF API)")
+st.title("Amharic Question Answering Demo")
 
-context = st.text_area("Enter context:")
-question = st.text_input("Enter question:")
+context = st.text_area("Enter context (Amharic text):")
+question = st.text_input("Enter question (Amharic):")
 
 if st.button("Get Answer"):
     if context and question:
